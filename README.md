@@ -2,7 +2,7 @@
 
 > **For Leslie**: A beautiful, simple dashboard to deploy calendar updates with just one click! 🚀
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/candlefish-ai/fogg-calendar-dashboard)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/aspenas/fogg-calendar-dashboard)
 
 ## 🎯 What This Does
 
