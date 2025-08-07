@@ -1,0 +1,74 @@
+# Production Configuration for FOGG Calendar Dashboard
+# This file contains non-sensitive configuration values
+
+# Deployment Settings
+deployment:
+  environment: production
+  domain: fogg.candlefish.ai
+  alternate_domains:
+    - www.fogg.candlefish.ai
+  
+# Netlify Configuration
+netlify:
+  site_name: fogg-calendar
+  site_id: 6b61d203-0871-40e6-bf78-d58b5089b5a6
+  build_command: npm run build
+  publish_directory: dist
+  functions_directory: netlify/functions
+  
+# DNS Configuration
+dns:
+  provider: porkbun
+  subdomain: fogg
+  root_domain: candlefish.ai
+  ttl: 300
+  record_type: CNAME
+  target: fogg-calendar.netlify.app
+  
+# SSL Configuration
+ssl:
+  auto_provision: true
+  force_https: true
+  hsts_enabled: true
+  hsts_max_age: 31536000
+  
+# Monitoring
+monitoring:
+  health_check_interval: 300  # seconds
+  health_check_timeout: 10    # seconds
+  alert_email: patrick@candlefish.ai
+  uptime_threshold: 99.5      # percentage
+  
+# Rate Limiting
+rate_limiting:
+  enabled: true
+  requests_per_minute: 60
+  burst_size: 10
+  
+# Feature Flags
+features:
+  authentication: false        # Leslie doesn't need auth
+  analytics: true
+  error_tracking: true
+  deployment_history: true
+  rollback_enabled: false      # Keep it simple for now
+  
+# API Endpoints
+api:
+  base_url: https://fogg.candlefish.ai/.netlify/functions
+  endpoints:
+    deploy: /deploy
+    status: /status
+    health: /health
+    
+# Deployment Limits
+limits:
+  max_deployment_time: 300     # seconds
+  max_retries: 3
+  retry_delay: 5000            # milliseconds
+  
+# Logging
+logging:
+  level: info
+  format: json
+  retention_days: 30
