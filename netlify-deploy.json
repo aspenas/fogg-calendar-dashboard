@@ -1,0 +1,37 @@
+{
+  "name": "FOGG Calendar Deployment Dashboard",
+  "description": "One-click deployment dashboard for Leslie to manage FOGG Calendar updates",
+  "repository": "https://github.com/candlefish-ai/fogg-calendar-dashboard",
+  "logo": "https://raw.githubusercontent.com/candlefish-ai/fogg-calendar-dashboard/main/public/logo512.png",
+  "keywords": [
+    "fogg",
+    "calendar",
+    "deployment",
+    "dashboard",
+    "netlify"
+  ],
+  "success_url": "/",
+  "env": {
+    "VITE_DEFAULT_USER": {
+      "description": "Default user name for deployments",
+      "value": "Leslie"
+    },
+    "VITE_DEFAULT_ENVIRONMENT": {
+      "description": "Default deployment environment",
+      "value": "production"
+    },
+    "VITE_ENABLE_CONFETTI": {
+      "description": "Enable celebration confetti animation",
+      "value": "true"
+    },
+    "VITE_POLLING_INTERVAL": {
+      "description": "Polling interval for deployment status (ms)",
+      "value": "2000"
+    }
+  },
+  "build": {
+    "command": "npm run build",
+    "publish": "dist",
+    "functions": "netlify/functions"
+  }
+}
