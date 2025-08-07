@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance-Optimized Deployment Dashboard</title>
+    
+    <!-- DNS Prefetching for faster resolution -->
+    <link rel="dns-prefetch" href="//fogg-calendar.netlify.app">
+    <link rel="dns-prefetch" href="//api.netlify.com">
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.gstatic.com">
+    
+    <!-- Preconnect for faster connection establishment -->
+    <link rel="preconnect" href="https://fogg-calendar.netlify.app" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/static/css/critical.css" as="style">
+    <link rel="preload" href="/static/js/app.js" as="script">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" as="style">
+    
+    <!-- Critical CSS inline for instant rendering -->
+    <style>
+        /* Critical CSS - Inline for instant rendering */
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #ffffff;
+            --text: #1f2937;
+            --border: #e5e7eb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-healthy { background: var(--secondary); }
+        .status-warning { background: var(--warning); }
+        .status-error { background: var(--danger); }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* Performance optimizations */
+        .lazy-load {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .lazy-load.loaded {
+            opacity: 1;
+        }
+        
+        /* Reduce layout shifts */
+        img, iframe {
+            aspect-ratio: 16/9;
+            width: 100%;
+            height: auto;
+        }
+    </style>
+    
+    <!-- Load non-critical CSS asynchronously -->
+    <link rel="preload" href="/static/css/main.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/static/css/main.css"></noscript>
+    
+    <!-- Load fonts with swap for faster text rendering -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1>Deployment Dashboard</h1>
+            <p id="connection-status">Connecting...</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="performance-metrics" class="card">
+            <h2>Performance Metrics</h2>
+            <div id="metrics-content">
+                <div class="skeleton" style="height: 100px;"></div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid" id="dashboard">
+            <!-- Cards will be dynamically loaded -->
+            <div class="card skeleton" style="height: 200px;"></div>
+            <div class="card skeleton" style="height: 200px;"></div>
+            <div class="card skeleton" style="height: 200px;"></div>
+        </div>
+    </main>
+
+    <script>
+        // Performance monitoring and optimization script
+        (function() {
+            'use strict';
+            
+            // Performance metrics collection
+            const metrics = {
+                navigationStart: performance.timing.navigationStart,
+                dns: 0,
+                tcp: 0,
+                ttfb: 0,
+                domReady: 0,
+                loadComplete: 0,
+                resourceTimings: []
+            };
+            
+            // DNS Resolution optimization
+            const dnsCache = new Map();
+            const dnsPrefetchList = [
+                'fogg-calendar.netlify.app',
+                'api.netlify.com',
+                'cdn.jsdelivr.net'
+            ];
+            
+            // Prefetch DNS for all critical domains
+            function prefetchDNS() {
+                dnsPrefetchList.forEach(domain => {
+                    const link = document.createElement('link');
+                    link.rel = 'dns-prefetch';
+                    link.href = `//${domain}`;
+                    document.head.appendChild(link);
+                });
+            }
+            
+            // Service Worker for caching and offline support
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('Service Worker registered:', registration.scope);
+                }).catch(err => {
+                    console.log('Service Worker registration failed:', err);
+                });
+            }
+            
+            // Connection pool for API requests
+            class ConnectionPool {
+                constructor(maxConnections = 6) {
+                    this.maxConnections = maxConnections;
+                    this.activeConnections = 0;
+                    this.queue = [];
+                }
+                
+                async request(url, options = {}) {
+                    if (this.activeConnections >= this.maxConnections) {
+                        await new Promise(resolve => this.queue.push(resolve));
+                    }
+                    
+                    this.activeConnections++;
+                    
+                    try {
+                        const response = await fetch(url, {
+                            ...options,
+                            headers: {
+                                ...options.headers,
+                                'X-Request-Priority': options.priority || 'normal'
+                            }
+                        });
+                        return response;
+                    } finally {
+                        this.activeConnections--;
+                        if (this.queue.length > 0) {
+                            const next = this.queue.shift();
+                            next();
+                        }
+                    }
+                }
+            }
+            
+            const connectionPool = new ConnectionPool();
+            
+            // Lazy loading for images and iframes
+            class LazyLoader {
+                constructor() {
+                    this.observer = null;
+                    this.init();
+                }
+                
+                init() {
+                    if ('IntersectionObserver' in window) {
+                        this.observer = new IntersectionObserver(
+                            entries => this.onIntersection(entries),
+                            {
+                                rootMargin: '50px',
+                                threshold: 0.01
+                            }
+                        );
+                    }
+                }
+                
+                onIntersection(entries) {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            this.loadElement(entry.target);
+                            this.observer.unobserve(entry.target);
+                        }
+                    });
+                }
+                
+                loadElement(element) {
+                    if (element.dataset.src) {
+                        element.src = element.dataset.src;
+                        element.classList.add('loaded');
+                    }
+                }
+                
+                observe(element) {
+                    if (this.observer) {
+                        this.observer.observe(element);
+                    } else {
+                        // Fallback for browsers without IntersectionObserver
+                        this.loadElement(element);
+                    }
+                }
+            }
+            
+            const lazyLoader = new LazyLoader();
+            
+            // Resource hints for critical resources
+            function addResourceHints() {
+                const hints = [
+                    { rel: 'preconnect', href: 'https://fogg-calendar.netlify.app' },
+                    { rel: 'preload', href: '/static/js/app.js', as: 'script' },
+                    { rel: 'prefetch', href: '/api/status' }
+                ];
+                
+                hints.forEach(hint => {
+                    const link = document.createElement('link');
+                    Object.assign(link, hint);
+                    document.head.appendChild(link);
+                });
+            }
+            
+            // Performance monitoring
+            function collectMetrics() {
+                const timing = performance.timing;
+                
+                metrics.dns = timing.domainLookupEnd - timing.domainLookupStart;
+                metrics.tcp = timing.connectEnd - timing.connectStart;
+                metrics.ttfb = timing.responseStart - timing.requestStart;
+                metrics.domReady = timing.domContentLoadedEventEnd - timing.navigationStart;
+                metrics.loadComplete = timing.loadEventEnd - timing.navigationStart;
+                
+                // Collect resource timings
+                if (performance.getEntriesByType) {
+                    metrics.resourceTimings = performance.getEntriesByType('resource')
+                        .map(r => ({
+                            name: r.name,
+                            duration: r.duration,
+                            size: r.transferSize || 0,
+                            type: r.initiatorType
+                        }))
+                        .sort((a, b) => b.duration - a.duration)
+                        .slice(0, 10); // Top 10 slowest resources
+                }
+                
+                return metrics;
+            }
+            
+            // Display performance metrics
+            function displayMetrics() {
+                const metricsContent = document.getElementById('metrics-content');
+                if (!metricsContent) return;
+                
+                const m = collectMetrics();
+                
+                metricsContent.innerHTML = `
+                    <div class="metrics-grid">
+                        <div class="metric">
+                            <strong>DNS:</strong> ${m.dns.toFixed(0)}ms
+                        </div>
+                        <div class="metric">
+                            <strong>TCP:</strong> ${m.tcp.toFixed(0)}ms
+                        </div>
+                        <div class="metric">
+                            <strong>TTFB:</strong> ${m.ttfb.toFixed(0)}ms
+                        </div>
+                        <div class="metric">
+                            <strong>DOM Ready:</strong> ${m.domReady.toFixed(0)}ms
+                        </div>
+                        <div class="metric">
+                            <strong>Page Load:</strong> ${m.loadComplete.toFixed(0)}ms
+                        </div>
+                    </div>
+                    <div class="resource-timings">
+                        <h3>Slowest Resources:</h3>
+                        <ul>
+                            ${m.resourceTimings.slice(0, 5).map(r => `
+                                <li>${r.name.split('/').pop()}: ${r.duration.toFixed(0)}ms</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+                
+                // Send metrics to monitoring endpoint
+                sendMetrics(m);
+            }
+            
+            // Send metrics to backend
+            async function sendMetrics(metrics) {
+                try {
+                    await connectionPool.request('/api/metrics', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            timestamp: Date.now(),
+                            metrics: metrics,
+                            userAgent: navigator.userAgent,
+                            connection: navigator.connection ? {
+                                effectiveType: navigator.connection.effectiveType,
+                                downlink: navigator.connection.downlink,
+                                rtt: navigator.connection.rtt
+                            } : null
+                        }),
+                        priority: 'low'
+                    });
+                } catch (error) {
+                    console.error('Failed to send metrics:', error);
+                }
+            }
+            
+            // WebSocket for real-time updates
+            class RealtimeConnection {
+                constructor(url) {
+                    this.url = url;
+                    this.ws = null;
+                    this.reconnectAttempts = 0;
+                    this.maxReconnectAttempts = 5;
+                    this.reconnectDelay = 1000;
+                    this.connect();
+                }
+                
+                connect() {
+                    try {
+                        this.ws = new WebSocket(this.url);
+                        
+                        this.ws.onopen = () => {
+                            console.log('WebSocket connected');
+                            this.reconnectAttempts = 0;
+                            this.updateStatus('connected');
+                        };
+                        
+                        this.ws.onmessage = (event) => {
+                            this.handleMessage(JSON.parse(event.data));
+                        };
+                        
+                        this.ws.onerror = (error) => {
+                            console.error('WebSocket error:', error);
+                            this.updateStatus('error');
+                        };
+                        
+                        this.ws.onclose = () => {
+                            console.log('WebSocket disconnected');
+                            this.updateStatus('disconnected');
+                            this.reconnect();
+                        };
+                    } catch (error) {
+                        console.error('Failed to create WebSocket:', error);
+                        this.reconnect();
+                    }
+                }
+                
+                reconnect() {
+                    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                        this.reconnectAttempts++;
+                        setTimeout(() => {
+                            console.log(`Reconnecting... (attempt ${this.reconnectAttempts})`);
+                            this.connect();
+                        }, this.reconnectDelay * this.reconnectAttempts);
+                    }
+                }
+                
+                handleMessage(data) {
+                    if (data.type === 'status-update') {
+                        this.updateDashboard(data.payload);
+                    } else if (data.type === 'performance-alert') {
+                        this.showAlert(data.payload);
+                    }
+                }
+                
+                updateStatus(status) {
+                    const statusEl = document.getElementById('connection-status');
+                    if (statusEl) {
+                        statusEl.textContent = `Status: ${status}`;
+                        statusEl.className = `status-${status}`;
+                    }
+                }
+                
+                updateDashboard(data) {
+                    // Update dashboard with real-time data
+                    console.log('Dashboard update:', data);
+                }
+                
+                showAlert(alert) {
+                    console.warn('Performance alert:', alert);
+                }
+                
+                send(data) {
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        this.ws.send(JSON.stringify(data));
+                    }
+                }
+            }
+            
+            // Initialize everything when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+            
+            function init() {
+                // Start optimizations
+                prefetchDNS();
+                addResourceHints();
+                
+                // Initialize real-time connection
+                const wsUrl = `wss://${window.location.host}/ws`;
+                const connection = new RealtimeConnection(wsUrl);
+                
+                // Setup lazy loading
+                document.querySelectorAll('.lazy-load').forEach(el => {
+                    lazyLoader.observe(el);
+                });
+                
+                // Display metrics when page is fully loaded
+                window.addEventListener('load', () => {
+                    setTimeout(displayMetrics, 100);
+                });
+                
+                // Periodic metric updates
+                setInterval(displayMetrics, 30000);
+                
+                // Export for debugging
+                window.performanceDebug = {
+                    metrics: collectMetrics,
+                    connection: connection,
+                    pool: connectionPool
+                };
+            }
+        })();
+    </script>
+    
+    <!-- Load main application script asynchronously -->
+    <script async src="/static/js/app.js"></script>
+</body>
+</html>
